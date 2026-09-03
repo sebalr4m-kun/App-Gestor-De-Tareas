@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   View,
   Text,
+  Image,
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
@@ -42,7 +43,14 @@ export default function LoginScreen() {
             <View className="mb-10">
               <View className="flex-row items-center mb-10">
                 <View className="w-11 h-11 bg-[#145F52] rounded-xl items-center justify-center">
-                  <Text className="text-white text-xl font-bold">M</Text>
+               <Image
+                  source={require('../assets/images/icon.png')}
+                  className="w-11 h-11 rounded-xl"
+                  resizeMode="cover"
+                  accessible
+                  accessibilityLabel="Imagen de la aplicación MACEDO"
+                />
+
                 </View>
                 <View className="ml-3">
                   <Text className="text-[#16332E] text-base font-bold">MACEDO</Text>
