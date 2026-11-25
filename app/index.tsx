@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  ActivityIndicator, FlatList, Keyboard, Pressable, ScrollView,
+  ActivityIndicator, FlatList, Keyboard, Pressable,
   StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { TaskCard } from '../src/components/TaskCard';
@@ -28,10 +28,11 @@ export default function TaskManagerScreen() {
     try {
       const records = await fetchTasks(simulateFailure);
       setTasks(records);
-      setLoading(false);
     } catch (caught) {
       console.error('[taskService] No se cargaron las tareas', caught);
       setError('No pudimos cargar las tareas. Probá otra vez.');
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -39,16 +40,16 @@ export default function TaskManagerScreen() {
     void loadTasks();
   }, []);
 
-  const visibleTasks = useMemo(() => filterTasks(tasks, query, status), [tasks, status]);
+  const visibleTasks = useMemo(() => filterTasks(tasks, query, status), [tasks, query, status]);
   const total = tasks.length;
   const completed = tasks.filter((task) => task.completed).length;
 
   function toggleTask(id: string) {
-    const found = tasks.find((task) => task.id === id);
-    if (found) {
-      found.completed = !found.completed;
-      setTasks(tasks);
-    }
+    setTasks((previous) =>
+      previous.map((task) =>
+        task.id === id ? { ...task, completed: !task.completed } : task
+      )
+    );
   }
 
   function addTask() {
@@ -58,7 +59,7 @@ export default function TaskManagerScreen() {
     }
     const task: Task = {
       id: `nuevo-${nextId.current++}`,
-      title: newTitle,
+      title: newTitle.trim(),
       description: 'Tarea creada durante el taller de debugging.',
       priority: 'media',
       completed: false,
@@ -78,7 +79,7 @@ export default function TaskManagerScreen() {
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
       <FlatList
         data={loading ? [] : visibleTasks}
-        keyExtractor={(_item, index) => String(index)}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <TaskCard task={item} onToggle={() => toggleTask(item.id)} onDelete={() => deleteTask(item.id)} />
         )}
