@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -44,182 +44,263 @@ export default function TaskManagerScreen() {
       }
       if (requestId === sequence.current) {
         const msg =
-Usa el código con precaución.
-caught instanceof ApiError
-? Error ${caught.status}: ${caught.message}
-: 'No pudimos conectar con el servidor. Verificá tu red e intentá de nuevo.';
-setError(msg);
-}
-} finally {
-if (requestId === sequence.current) {
-setLoading(false);
-}
-}
-}, []);
-useEffect(() => {
-const controller = new AbortController();
-const timer = setTimeout(() => {
-void loadTasks(controller.signal);
-}, 275);
-return () => {
-clearTimeout(timer);
-controller.abort();
-};
-}, [query, status, loadTasks]);
-async function addTask() {
-if (creating.current || saving) return;
-if (!isValidTaskTitle(newTitle)) {
-setFeedback('Ingresá un título válido (1 a 200 bytes UTF-8).');
-return;
-}
-const description = newDescription.trim();
-if (new TextEncoder().encode(description).length > 10000) {
-setFeedback('La descripción admite hasta 10000 bytes UTF-8.');
-return;
-}
-creating.current = true;
-setSaving(true);
-setFeedback('');
-try {
-await tasksService.create({
-title: newTitle.trim(),
-description,
-});
-setNewTitle('');
-setNewDescription('');
-setFeedback('Tarea creada en el servidor.');
-Keyboard.dismiss();
-await loadTasks();
-} catch (caught) {
-const msg =
-caught instanceof ApiError
-? No se pudo crear (${caught.status}): ${caught.message}
-: 'Error de red al crear la tarea. No reintentes sin verificar.';
-setFeedback(msg);
-} finally {
-creating.current = false;
-setSaving(false);
-}
-}
-async function mutate(id: number, action: () => Promise, successMessage?: string) {
-if (busy.has(id)) return;
-setBusy((prev) => new Set(prev).add(id));
-try {
-await action();
-if (successMessage) setFeedback(successMessage);
-await loadTasks();
-} catch (caught) {
-if (caught instanceof ApiError && caught.status === 404) {
-setFeedback('La tarea ya no existe en el servidor. Actualizando lista...');
-await loadTasks();
-} else {
-setFeedback(
-caught instanceof ApiError
-? Error ${caught.status}: ${caught.message}
-: 'Error de conexión al actualizar la tarea.'
-);
-}
-} finally {
-setBusy((prev) => {
-const next = new Set(prev);
-next.delete(id);
-return next;
-});
-}
-}
-function toggleTask(id: number) {
-const task = tasks.find((item) => item.id === id);
-if (!task) return;
-void mutate(id, async () => {
-const updated = await tasksService.setCompleted(id, !task.completed);
-setTasks((previous) =>
-previous.map((item) => (item.id === id ? updated : item))
-);
-});
-}
-function deleteTask(id: number) {
-void mutate(
-id,
-async () => {
-await tasksService.remove(id);
-},
-'Tarea eliminada.'
-);
-}
-const total = tasks.length;
-const completed = tasks.filter((task) => task.completed).length;
-return (
-<SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
-<FlatList
-data={tasks}
-keyExtractor={(item) => String(item.id)}
-renderItem={({ item }) => (
-<TaskCard
-busy={busy.has(item.id)}
-task={item}
-onToggle={() => toggleTask(item.id)}
-onDelete={() => deleteTask(item.id)}
-/>
-)}
-keyboardShouldPersistTaps="handled"
-contentContainerStyle={styles.listContainer}
-ListHeaderComponent={
-<>
-<Pressable accessibilityRole="button" onPress={() => router.push('/guia')} style={styles.helpButton}>
-<View style={[styles.stat, styles.statDark]}>
-<Pressable
-accessibilityRole="button"
-testID="add-task-button"
-disabled={saving}
-style={[styles.addButton, saving && styles.addButtonDisabled]}
-onPress={() => void addTask()}
->
-{feedback ? {feedback} : null}
-<Pressable accessibilityRole="button" style={styles.retryButton} onPress={() => void loadTasks()}>
-{error ? {error} : null}
-{loading ? (
+          caught instanceof ApiError
+            ? `Error ${caught.status}: ${caught.message}`
+            : 'No pudimos conectar con el servidor. Verificá tu red e intentá de nuevo.';
+        setError(msg);
+      }
+    } finally {
+      if (requestId === sequence.current) {
+        setLoading(false);
+      }
+    }
+  }, []);
 
-) : null}
-</>
-}
-ListEmptyComponent={!loading ? No hay tareas para mostrar con estos filtros. : null}
-ListFooterComponent={EDI · Desarrollo de Software Multiplataforma · Integración API REST}
-/>
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      void loadTasks(controller.signal);
+    }, 275);
 
-);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, status, loadTasks]);
+
+  async function addTask() {
+    if (creating.current || saving) return;
+
+    if (!isValidTaskTitle(newTitle)) {
+      setFeedback('Ingresá un título válido (1 a 200 bytes UTF-8).');
+      return;
+    }
+
+    const description = newDescription.trim();
+    if (new TextEncoder().encode(description).length > 10000) {
+      setFeedback('La descripción admite hasta 10000 bytes UTF-8.');
+      return;
+    }
+
+    creating.current = true;
+    setSaving(true);
+    setFeedback('');
+
+    try {
+      await tasksService.create({
+        title: newTitle.trim(),
+        description,
+      });
+      setNewTitle('');
+      setNewDescription('');
+      setFeedback('Tarea creada en el servidor.');
+      Keyboard.dismiss();
+      await loadTasks();
+    } catch (caught) {
+      const msg =
+        caught instanceof ApiError
+          ? `No se pudo crear (${caught.status}): ${caught.message}`
+          : 'Error de red al crear la tarea. No reintentes sin verificar.';
+      setFeedback(msg);
+    } finally {
+      creating.current = false;
+      setSaving(false);
+    }
+  }
+
+  async function mutate(id: number, action: () => Promise<void>, successMessage?: string) {
+    if (busy.has(id)) return;
+    setBusy((prev) => new Set(prev).add(id));
+
+    try {
+      await action();
+      if (successMessage) setFeedback(successMessage);
+      await loadTasks();
+    } catch (caught) {
+      if (caught instanceof ApiError && caught.status === 404) {
+        setFeedback('La tarea ya no existe en el servidor. Actualizando lista...');
+        await loadTasks();
+      } else {
+        setFeedback(
+          caught instanceof ApiError
+            ? `Error ${caught.status}: ${caught.message}`
+            : 'Error de conexión al actualizar la tarea.'
+        );
+      }
+    } finally {
+      setBusy((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  }
+
+  function toggleTask(id: number) {
+    const task = tasks.find((item) => item.id === id);
+    if (!task) return;
+    void mutate(id, async () => {
+      const updated = await tasksService.setCompleted(id, !task.completed);
+      setTasks((previous) =>
+        previous.map((item) => (item.id === id ? updated : item))
+      );
+    });
+  }
+
+  function deleteTask(id: number) {
+    void mutate(
+      id,
+      async () => {
+        await tasksService.remove(id);
+      },
+      'Tarea eliminada.'
+    );
+  }
+
+  const total = tasks.length;
+  const completed = tasks.filter((task) => task.completed).length;
+
+  return (
+    <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
+      <FlatList
+        data={tasks}
+        keyExtractor={(item) => String(item.id)}
+        renderItem={({ item }) => (
+          <TaskCard
+            busy={busy.has(item.id)}
+            task={item}
+            onToggle={() => toggleTask(item.id)}
+            onDelete={() => deleteTask(item.id)}
+          />
+        )}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.listContainer}
+        ListHeaderComponent={
+          <>
+            <View style={styles.eyebrowRow}>
+              <Text style={styles.eyebrow}>API REST · REACT NATIVE</Text>
+              <Pressable accessibilityRole="button" onPress={() => router.push('/guia')} style={styles.helpButton}>
+                <Text style={styles.helpText}>Guía ↗</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.heading}>Gestor de tareas</Text>
+            <Text style={styles.subtitle}>Conectado al servicio remoto compartiendo tareas en tiempo real.</Text>
+
+            <View style={styles.statsRow}>
+              <View style={[styles.stat, styles.statDark]}>
+                <Text style={styles.statLabelLight}>VISIBLES</Text>
+                <Text style={styles.statNumberLight}>{total}</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statLabel}>COMPLETADAS</Text>
+                <Text style={styles.statNumber}>{completed}</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statLabel}>PENDIENTES</Text>
+                <Text style={styles.statNumber}>{total - completed}</Text>
+              </View>
+            </View>
+
+            <Text style={styles.label}>NUEVA TAREA</Text>
+            <View style={styles.addRow}>
+              <TextInput
+                testID="new-task-input"
+                accessibilityLabel="Nombre de la nueva tarea"
+                placeholder="Ej.: Revisar endpoints REST"
+                placeholderTextColor="#95A0B3"
+                value={newTitle}
+                onChangeText={setNewTitle}
+                editable={!saving}
+                returnKeyType="next"
+                style={styles.addInput}
+              />
+              <Pressable
+                accessibilityRole="button"
+                testID="add-task-button"
+                disabled={saving}
+                style={[styles.addButton, saving && styles.addButtonDisabled]}
+                onPress={() => void addTask()}
+              >
+                <Text style={styles.addButtonText}>{saving ? 'Guardando...' : 'Agregar'}</Text>
+              </Pressable>
+            </View>
+            <TextInput
+              accessibilityLabel="Descripción de la nueva tarea"
+              placeholder="Detalle opcional"
+              placeholderTextColor="#95A0B3"
+              value={newDescription}
+              onChangeText={setNewDescription}
+              editable={!saving}
+              multiline
+              style={styles.descriptionInput}
+            />
+            {feedback ? <Text style={styles.feedback}>{feedback}</Text> : null}
+
+            <Text style={[styles.label, styles.sectionHeading]}>MIS TAREAS</Text>
+            <TextInput
+              testID="search-input"
+              accessibilityLabel="Buscar tareas"
+              placeholder="Buscar por título o descripción..."
+              placeholderTextColor="#95A0B3"
+              value={query}
+              onChangeText={setQuery}
+              style={styles.searchInput}
+            />
+            <StatusTabs current={status} onChange={setStatus} />
+
+            <View style={styles.actions}>
+              <Pressable accessibilityRole="button" style={styles.retryButton} onPress={() => void loadTasks()}>
+                <Text style={styles.retryLabel}>↻ Recargar datos</Text>
+              </Pressable>
+            </View>
+            {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
+            {loading ? (
+              <View style={styles.loading}>
+                <ActivityIndicator color="#147D73" size="small" />
+                <Text style={styles.loadingLabel}>Sincronizando con servidor…</Text>
+              </View>
+            ) : null}
+          </>
+        }
+        ListEmptyComponent={!loading ? <Text style={styles.empty}>No hay tareas para mostrar con estos filtros.</Text> : null}
+        ListFooterComponent={<Text style={styles.footer}>EDI · Desarrollo de Software Multiplataforma · Integración API REST</Text>}
+      />
+    </SafeAreaView>
+  );
 }
+
 const styles = StyleSheet.create({
-screen: { flex: 1, backgroundColor: '#F5F7FB' },
-listContainer: { paddingHorizontal: 19, paddingTop: 18, paddingBottom: 55, flexGrow: 1 },
-eyebrowRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-eyebrow: { fontSize: 10, letterSpacing: 1.5, fontWeight: '900', color: '#168879' },
-helpButton: { backgroundColor: '#E5EFEC', paddingVertical: 8, paddingHorizontal: 11, borderRadius: 9 },
-helpText: { fontWeight: '800', color: '#187A71', fontSize: 12 },
-heading: { fontSize: 30, fontWeight: '900', color: '#172743', marginTop: 12 },
-subtitle: { color: '#75829A', fontSize: 13, marginTop: 7, marginBottom: 21, lineHeight: 20 },
-statsRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
-stat: { backgroundColor: '#FFFFFF', padding: 12, borderRadius: 15, flex: 1, borderColor: '#E7EBF3', borderWidth: 1 },
-statDark: { backgroundColor: '#192C4D', borderColor: '#192C4D' },
-statLabel: { fontWeight: '800', color: '#8390A5', fontSize: 9, letterSpacing: 0.35 },
-statLabelLight: { fontWeight: '800', color: '#B3C4DD', fontSize: 9, letterSpacing: 0.35 },
-statNumber: { marginTop: 8, color: '#1B3150', fontWeight: '900', fontSize: 25 },
-statNumberLight: { marginTop: 8, color: '#FFFFFF', fontWeight: '900', fontSize: 25 },
-label: { fontSize: 11, color: '#384E6D', fontWeight: '900', letterSpacing: 1.1, marginBottom: 10 },
-sectionHeading: { marginTop: 12 },
-addRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
-addInput: { flex: 1, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E0E6F0', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11, color: '#1D3151', fontSize: 13, minWidth: 0 },
-descriptionInput: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E0E6F0', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: '#1D3151', fontSize: 13, marginBottom: 8, minHeight: 44 },
-addButton: { backgroundColor: '#147D73', paddingHorizontal: 13, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-addButtonDisabled: { opacity: 0.6 },
-addButtonText: { color: '#FFFFFF', fontWeight: '800', fontSize: 12 },
-feedback: { color: '#147D73', fontSize: 12, marginBottom: 8, fontWeight: '600' },
-searchInput: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E0E6F0', borderRadius: 12, paddingHorizontal: 13, paddingVertical: 13, color: '#1D3151', fontSize: 13, marginBottom: 12 },
-actions: { flexDirection: 'row', justifyContent: 'space-between', gap: 7, marginBottom: 13 },
-retryButton: { paddingVertical: 11, paddingHorizontal: 11, backgroundColor: '#E5F2EF', borderRadius: 10, flex: 1, alignItems: 'center' },
-retryLabel: { fontSize: 11, color: '#18776D', fontWeight: '800' },
-error: { color: '#A53D49', backgroundColor: '#FFF0F0', padding: 11, borderRadius: 10, fontWeight: '700', marginBottom: 10, fontSize: 12 },
-loading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, gap: 8 },
-loadingLabel: { color: '#75829A', fontSize: 12 },
-empty: { marginTop: 30, textAlign: 'center', color: '#8490A5', lineHeight: 20, fontSize: 13 },
-footer: { textAlign: 'center', color: '#A4AFC1', fontSize: 10, paddingTop: 30 },
+  screen: { flex: 1, backgroundColor: '#F5F7FB' },
+  listContainer: { paddingHorizontal: 19, paddingTop: 18, paddingBottom: 55, flexGrow: 1 },
+  eyebrowRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  eyebrow: { fontSize: 10, letterSpacing: 1.5, fontWeight: '900', color: '#168879' },
+  helpButton: { backgroundColor: '#E5EFEC', paddingVertical: 8, paddingHorizontal: 11, borderRadius: 9 },
+  helpText: { fontWeight: '800', color: '#187A71', fontSize: 12 },
+  heading: { fontSize: 30, fontWeight: '900', color: '#172743', marginTop: 12 },
+  subtitle: { color: '#75829A', fontSize: 13, marginTop: 7, marginBottom: 21, lineHeight: 20 },
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
+  stat: { backgroundColor: '#FFFFFF', padding: 12, borderRadius: 15, flex: 1, borderColor: '#E7EBF3', borderWidth: 1 },
+  statDark: { backgroundColor: '#192C4D', borderColor: '#192C4D' },
+  statLabel: { fontWeight: '800', color: '#8390A5', fontSize: 9, letterSpacing: 0.35 },
+  statLabelLight: { fontWeight: '800', color: '#B3C4DD', fontSize: 9, letterSpacing: 0.35 },
+  statNumber: { marginTop: 8, color: '#1B3150', fontWeight: '900', fontSize: 25 },
+  statNumberLight: { marginTop: 8, color: '#FFFFFF', fontWeight: '900', fontSize: 25 },
+  label: { fontSize: 11, color: '#384E6D', fontWeight: '900', letterSpacing: 1.1, marginBottom: 10 },
+  sectionHeading: { marginTop: 12 },
+  addRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  addInput: { flex: 1, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E0E6F0', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 11, color: '#1D3151', fontSize: 13, minWidth: 0 },
+  descriptionInput: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E0E6F0', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, color: '#1D3151', fontSize: 13, marginBottom: 8, minHeight: 44 },
+  addButton: { backgroundColor: '#147D73', paddingHorizontal: 13, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  addButtonDisabled: { opacity: 0.6 },
+  addButtonText: { color: '#FFFFFF', fontWeight: '800', fontSize: 12 },
+  feedback: { color: '#147D73', fontSize: 12, marginBottom: 8, fontWeight: '600' },
+  searchInput: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E0E6F0', borderRadius: 12, paddingHorizontal: 13, paddingVertical: 13, color: '#1D3151', fontSize: 13, marginBottom: 12 },
+  actions: { flexDirection: 'row', justifyContent: 'space-between', gap: 7, marginBottom: 13 },
+  retryButton: { paddingVertical: 11, paddingHorizontal: 11, backgroundColor: '#E5F2EF', borderRadius: 10, flex: 1, alignItems: 'center' },
+  retryLabel: { fontSize: 11, color: '#18776D', fontWeight: '800' },
+  error: { color: '#A53D49', backgroundColor: '#FFF0F0', padding: 11, borderRadius: 10, fontWeight: '700', marginBottom: 10, fontSize: 12 },
+  loading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, gap: 8 },
+  loadingLabel: { color: '#75829A', fontSize: 12 },
+  empty: { marginTop: 30, textAlign: 'center', color: '#8490A5', lineHeight: 20, fontSize: 13 },
+  footer: { textAlign: 'center', color: '#A4AFC1', fontSize: 10, paddingTop: 30 },
 });
