@@ -1,10 +1,19 @@
-export type TaskPriority = 'alta' | 'media' | 'baja';
-export type TaskStatus = 'todas' | 'pendientes' | 'completadas';
+﻿export type TaskStatus = 'todas' | 'pendientes' | 'completadas';
 
 export type Task = {
-  id: string;
+  id: number;
   title: string;
   description: string;
-  priority: TaskPriority;
+  createdAt: string;
   completed: boolean;
+};
+
+export type TaskFilters = {
+  search?: string;
+  status?: TaskStatus;
+};
+
+export type CreateTaskInput = {
+  title: string;
+  description?: string;
 };
